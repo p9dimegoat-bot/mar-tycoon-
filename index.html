@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Mar Mega Tycoon 12345</title>
+<style>
+body{font-family:Arial;background:#111;color:white;text-align:center;}
+.box{background:#222;padding:15px;margin:10px;border-radius:10px;display:inline-block;width:260px;vertical-align:top;}
+button{padding:10px;margin:5px;border:none;border-radius:8px;cursor:pointer;}
+input{padding:8px;border-radius:6px;border:none;}
+#map{width:600px;height:360px;margin:auto;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(4,1fr);gap:5px;padding:10px;background:#333;}
+.tile{background:#444;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;}
+.chat{height:120px;overflow:auto;background:black;padding:10px;}
+</style>
+</head>
+<body>
+
+<h1>💰 Mar Mega Tycoon 12345</h1>
+
+<div id="login" class="box">
+<h3>Login</h3>
+<input id="username" placeholder="username">
+<br><br>
+<button onclick="login()">Play</button>
+</div>
+
+<div id="game" style="display:none">
+
+<div class="box">
+Player: <span id="player"></span><br>
+Money: $<span id="money">0</span><br>
+MPS: <span id="mps">0</span><br>
+Gems: 💎 <span id="gems">0</span><br>
+Rebirths: <span id="rebirths">0</span>
+</div>
+
+<div class="box">
+<h3>Work</h3>
+<button onclick="work()">Work</button>
+</div>
+
+<div class="box">
+<h3>Machines 1–5</h3>
+<button onclick="buyMachine(50,1,0)">Machine 1 $50</button>
+<button onclick="buyMachine(100,2,10)">Machine 2 $100</button>
+<button onclick="buyMachine(200,3,20)">Machine 3 $200</button>
+<button onclick="buyMachine(500,4,50)">Machine 4 $500</button>
+<button onclick="buyMachine(1000,5,100)">Machine 5 $1000</button>
+</div>
+
+<div class="box">
+<h3>Upgrade</h3>
+<button onclick="upgrade()">Upgrade $500</button>
+</div>
+
+<div class="box">
+<h3>Rebirth</h3>
+<button onclick="rebirth()">Rebirth (1M)</button>
+</div>
+
+<div class="box">
+<h3>Skins (Unlock by Money)</h3>
+<button onclick="skin('dark')">Dark ($0)</button>
+<button onclick="skin('blue')">Blue ($500)</button>
+<button onclick="skin('green')">Green ($1000)</button>
+<button onclick="skin('gold')">Gold ($1M)</button>
+</div>
+
+<div class="box">
+<h3>Global Leaderboard</h3>
+<div id="leaderboard"></div>
+</div>
+
+<div class="box">
+<h3>Global Chat</h3>
+<div class="chat" id="chat"></div>
+<input id="msg">
+<button onclick="send()">Send</button>
+</div>
+
+<h2>Your Tycoon Map</h2>
+<div id="map"></div>
+
+</div>
+
+<script type="module">
+// Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Stats
+let player="", money=0, mps=0, gems=0, rebirths=0;
+
+window.login = async function() {
+  player = document.getElementById("username").value;
+  if(player===""){alert("Enter username"); return;}
+  document.getElementById("login").style.display="none";
+  document.getElementById("game").style.display="block";
+  document.getElementById("player").innerText=player;
+  await loadPlayer();
+  createMap();
+  update();
+  listenLeaderboard();
+  listenChat();
+};
+
+// Work & Machines
+window.work = async function(){ money+=1+rebirths; update(); savePlayer(); };
+window.buyMachine = async function(cost,power,bonusMPS){ 
+  if(money>=cost){ money-=cost; mps+=power*(rebirths+1)+bonusMPS; update(); savePlayer(); } 
+};
+window.upgrade = async function(){ if(money>=500){ money-=500; mps+=5; update(); savePlayer(); } };
+window.rebirth = async function(){ 
+  if(money>=1000000){ rebirths++; gems+=5; money=0; mps=0; alert("REBIRTH!"); update(); savePlayer(); } 
+};
+window.skin = function(color){ 
+  if(color==="dark") document.body.style.background="#111";
+  if(color==="blue" && money>=500) document.body.style.background="#0b2a44";
+  if(color==="green" && money>=1000) document.body.style.background="#0b4420";
+  if(color==="gold" && money>=1000000) document.body.style.background="#FFD700";
+};
+
+// Map
+function createMap(){
+  let map=document.getElementById("map"); map.innerHTML="";
+  for(let i=0;i<24;i++){
+    let tile=document.createElement("div"); tile.className="tile";
+    tile.onclick=function(){if(money>=500){money-=500;tile.innerText="🏭";update(); savePlayer();}};
+    map.appendChild(tile);
+  }
+}
+
+// Global leaderboard
+async function listenLeaderboard(){
+  const q=query(collection(db,"players"), orderBy("money","desc"), limit(10));
+  onSnapshot(q,snap=>{
+    const board=document.getElementById("leaderboard"); board.innerHTML="";
+    snap.forEach(p=>{
+      const data=p.data();
+      const d=document.createElement("div"); d.innerText=p.id+" - $"+data.money;
+      board.appendChild(d);
+    });
+  });
+}
+
+// Global chat
+window.send = async function(){
+  const msg=document.getElementById("msg").value; if(msg==="")return;
+  await addDoc(collection(db,"chat"),{name:player,text:msg,time:Date.now()});
+  document.getElementById("msg").value="";
+};
+function listenChat(){
+  const q=query(collection(db,"chat"), orderBy("time","asc"));
+  onSnapshot(q,snap=>{
+    let chat=document.getElementById("chat"); chat.innerHTML="";
+    snap.forEach(m=>{
+      let div=document.createElement("div"); div.innerText=m.data().name+": "+m.data().text;
+      chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
+    });
+  });
+}
+
+// Save / Load Player
+async function savePlayer(){
+  await setDoc(doc(db,"players",player),{money,mps,gems,rebirths});
+}
+async function loadPlayer(){
+  const ref=doc(db,"players",player);
+  const snap=await getDoc(ref);
+  if(snap.exists()){ const data=snap.data(); money=data.money||0; mps=data.mps||0; gems=data.gems||0; rebirths=data.rebirths||0; }
+  update();
+}
+
+// Update UI
+function update(){
+  document.getElementById("money").innerText=money;
+  document.getElementById("mps").innerText=mps;
+  document.getElementById("gems").innerText=gems;
+  document.getElementById("rebirths").innerText=rebirths;
+}
+
+// Idle MPS
+setInterval(()=>{money+=mps; update(); savePlayer();},1000);
+
+</script>
+
+</body>
+</html>
