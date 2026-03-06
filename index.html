@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Mar Mega Clicker</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:white;
+text-align:center;
+margin:0;
+}
+
+header{
+font-size:40px;
+padding:20px;
+font-weight:bold;
+}
+
+.stats{
+display:flex;
+justify-content:center;
+gap:20px;
+margin-bottom:20px;
+}
+
+.card{
+background:#1e2a38;
+padding:20px;
+border-radius:12px;
+width:180px;
+box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
+
+button{
+padding:12px;
+border:none;
+border-radius:10px;
+margin:6px;
+cursor:pointer;
+font-size:14px;
+font-weight:bold;
+transition:.2s;
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+.work{
+background:#27ae60;
+color:white;
+font-size:20px;
+padding:18px;
+}
+
+.machine{background:#3498db;color:white;}
+.upgrade{background:#9b59b6;color:white;}
+.super{background:#f39c12;color:black;}
+.gem{background:#16a085;color:white;}
+
+.section{
+margin-top:20px;
+}
+
+input{
+padding:10px;
+border-radius:8px;
+border:none;
+}
+
+</style>
+</head>
+
+<body>
+
+<header id="title">Mar Mega Clicker</header>
+
+<div class="stats">
+
+<div class="card">
+Money<br>
+<h2>$<span id="money">0</span></h2>
+</div>
+
+<div class="card">
+MPS<br>
+<h2 id="mps">0</h2>
+</div>
+
+<div class="card">
+Gems<br>
+<h2 id="gems">0</h2>
+</div>
+
+<div class="card">
+Multiplier<br>
+<h2 id="multi">1x</h2>
+</div>
+
+</div>
+
+<div class="section">
+<button class="work" onclick="work()">WORK</button>
+</div>
+
+<div class="section">
+
+<h3>Machines</h3>
+
+<button class="machine" onclick="buyMachine(50,1)">Machine 1 ($50)</button>
+<button class="machine" onclick="buyMachine(200,3)">Machine 2 ($200)</button>
+<button class="machine" onclick="buyMachine(500,7)">Machine 3 ($500)</button>
+<button class="machine" onclick="buyMachine(1500,15)">Machine 4 ($1500)</button>
+
+</div>
+
+<div class="section">
+
+<h3>Upgrades</h3>
+
+<button class="upgrade" onclick="buyMultiplier()">2x Money ($10k)</button>
+<button class="super" onclick="buySuper()">Super Machine ($1M)</button>
+
+</div>
+
+<div class="section">
+
+<h3>Gem Shop</h3>
+
+<button class="gem" onclick="buyGem()">+10 MPS (5 Gems)</button>
+
+</div>
+
+<div class="section">
+
+<h3>Tycoon Name</h3>
+
+<input id="nameInput" placeholder="Enter name">
+<button onclick="setName()">Set Name</button>
+
+</div>
+
+<script>
+
+let money = 0
+let mps = 0
+let gems = 0
+let multiplier = 1
+let tycoonName = "Mar Mega Clicker"
+
+function update(){
+
+document.getElementById("money").innerText=Math.floor(money)
+document.getElementById("mps").innerText=mps
+document.getElementById("gems").innerText=gems
+document.getElementById("multi").innerText=multiplier+"x"
+document.getElementById("title").innerText=tycoonName
+
+save()
+
+}
+
+function work(){
+
+money += 1 * multiplier
+update()
+
+}
+
+function buyMachine(cost,power){
+
+if(money>=cost){
+
+money -= cost
+mps += power
+
+update()
+
+}
+
+}
+
+function buyMultiplier(){
+
+if(money>=10000){
+
+money-=10000
+multiplier*=2
+
+update()
+
+}
+
+}
+
+function buySuper(){
+
+if(money>=1000000){
+
+money-=1000000
+mps+=500
+
+update()
+
+}
+
+}
+
+function buyGem(){
+
+if(gems>=5){
+
+gems-=5
+mps+=10
+
+update()
+
+}
+
+}
+
+function setName(){
+
+let name=document.getElementById("nameInput").value
+
+if(name!=""){
+
+tycoonName=name
+update()
+
+}
+
+}
+
+setInterval(()=>{
+
+money += mps
+
+if(Math.random()<0.1){
+gems+=1
+}
+
+update()
+
+},1000)
+
+function save(){
+
+let data={
+
+money:money,
+mps:mps,
+gems:gems,
+multiplier:multiplier,
+name:tycoonName
+
+}
+
+localStorage.setItem("marClickerSave",JSON.stringify(data))
+
+}
+
+function load(){
+
+let saveData=localStorage.getItem("marClickerSave")
+
+if(saveData){
+
+let data=JSON.parse(saveData)
+
+money=data.money
+mps=data.mps
+gems=data.gems
+multiplier=data.multiplier
+tycoonName=data.name
+
+}
+
+update()
+
+}
+
+load()
+
+</script>
+
+</body>
+</html>
